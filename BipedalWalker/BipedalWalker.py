@@ -7,35 +7,42 @@ import os
 env = gym.make("BipedalWalker-v3")
 env = Monitor(env)
 
-# Create PPO model
+# Create PPO model with optimized hyperparameters for perfect walk
 model = PPO(
     "MlpPolicy",
     env,
-    learning_rate=3e-4,
-    n_steps=2048,
-    batch_size=64,
-    n_epochs=10,
-    gamma=0.99,
-    gae_lambda=0.95,
-    clip_range=0.2,
-    ent_coef=0.01,  # Added entropy for exploration
-    verbose=1
+    learning_rate=1e-4,  # Lower for fine-tuning
+    n_steps=4096,  # More steps per update
+    batch_size=128,  # Larger batches for stable learning
+    n_epochs=20,  # More epochs per batch
+    gamma=0.995,  # Higher gamma for long-term rewards
+    gae_lambda=0.98,  # Better advantage estimation
+    clip_range=0.15,  # Tighter clipping for stability
+    ent_coef=0.005,  # Less entropy for more deterministic policy
+    vf_coef=0.5,  # Value function coefficient
+    max_grad_norm=0.5,  # Gradient clipping
+    verbose=1,
+    policy_kwargs=dict(
+        net_arch=[dict(pi=[256, 256], vf=[256, 256])]  # Deeper network
+    )
 )
 
-TIMESTEPS = 1_000_000
+TIMESTEPS = 2_000_000  # Double the training time for perfection!
 
 # ============================================
 # TRAINING
 # ============================================
 def train_bipedal():
-    print("🚀 Starting training... This will take 25-30 minutes!\n")
+    print("🚀 Starting training for PERFECT WALK...\n")
+    print("⏱️  This will take 45-60 minutes for 2M timesteps!\n")
+    print("🎯 Target: +300 reward (perfect walk)\n")
     
     # Train
     model.learn(total_timesteps=TIMESTEPS)
     
-    # Save model in same     folder
+    # Save model in same folder
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, "bipedal_ppo")
+    model_path = os.path.join(script_dir, "bipedal_ppo_perfect")
     model.save(model_path)
     
     env.close()
@@ -51,7 +58,7 @@ def test_agent(episodes=5, render=True):
     
     # Load model from same folder
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, "bipedal_ppo")
+    model_path = os.path.join(script_dir, "bipedal_ppo_perfect")
     loaded_model = PPO.load(model_path)
 
     print("\n🎯 Testing trained agent...")
@@ -85,7 +92,7 @@ def test_agent(episodes=5, render=True):
 # RUN MODE
 # ============================================
 
-# To TRAIN: Uncomment the line below
+# To TRAIN: Uncomment the line below (45-60 min for perfect walk!)
 # train_bipedal()
 
 # To TEST: Uncomment the line below (after training is complete!)
